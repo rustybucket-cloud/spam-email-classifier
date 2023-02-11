@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/reset.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="{{url_for('static', filename='scripts/spamPredictor.js')}}" defer></script>
+  <title>{{ title }}</title>
+</head>
+<body>
+  <main class="p-4 max-w-3xl mx-auto">
+    <h1 class="text-3xl">{{ title }}</h1>
+    <section id="results" style="display:none;">
+      <h2 class="text-2xl">Results</h2>
+      <p><span class="text-black font-bold">Prediction:</span> <span id="result"></span></p>
+      <p><span class="text-black font-bold">Confidence:</span> <span id="confidence"></span></p>
+    </section>
+    <section>
+      <form id="data-form" class="grid gap-2" action="/" method="POST">
+        <label for="email-input">{{ input_label }}:</label>
+        <textarea id="email-input" name="document" class="border-solid border-2 p-2 resize-none" rows="25"></textarea>
+        <button type="submit" id="submit" class="border-solid border-2 p-2 bg-slate-100 hover:bg-slate-300">{{ button_text }}</button>
+      </form>
+    </section> 
+    <section>
+      <h2 class="text-2xl">About This Model</h2>
+      <p>This model was trained using data from <a href="{{ data_href }}" class="text-sky-700" target="_blank">{{ data_link_text }}</a>.</p>
+    </section>
+  </main>
+</body>
+</html>
