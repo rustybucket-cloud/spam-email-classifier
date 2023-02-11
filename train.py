@@ -14,10 +14,15 @@ class SpamModel:
         X = self.vectorizer.transform(X)
         with torch.no_grad():
             pred = self.model.forward(torch.Tensor(X.toarray()))
-            if pred[0][0] > pred[0][1]:
-                return "Not Spam"
+            confidence = pred.item()
+            if confidence > 0.7:
+                confidence = round(1 - ((1 - confidence)/ 0.3), 2)
             else:
-                return "Spam"
+                confidence = round(1 - (confidence / 0.7), 2)
+            if pred[0] > .7:
+                return { "value": "Spam", "confidence": confidence }
+            else:
+                return { "value": "Not Spam", "confidence": confidence }
     
 
 def main():
@@ -26,8 +31,13 @@ def main():
     X_train = torch.Tensor(X_train.toarray())
     X_train.requires_grad = True
 
-    model = Model(X_train.shape[1], 2, 100)
+    model = Model(X_train.shape[1], 1, 100)
     y_train = torch.Tensor(y_train)
+    if torch.cuda.is_available():
+        print("cuda available\n\n")
+        model.cuda()
+        X_train.to(device=torch.device('cuda:0'))
+        y_train.to(device=torch.device('cuda:0'))
     y_train.requires_grad=True
     model = train(model, X_train, y_train, 50)
 
@@ -35,6 +45,11 @@ def main():
     X_test = vectorizer.transform(documents)
     X_test = torch.Tensor(X_test.toarray())
     y_test = torch.Tensor(y_test)
+    if torch.cuda.is_available():
+        model.cuda()
+        X_test.to(device=torch.device('cuda:0'))
+        y_test.to(device=torch.device('cuda:0'))
+
     print(test(model, X_test, y_test))
     torch.save(model.state_dict(), f"./model.pt")
 

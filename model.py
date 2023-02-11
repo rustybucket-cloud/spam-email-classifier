@@ -10,10 +10,11 @@ class Model(nn.Module):
 
     def forward(self, X):
         X = F.relu(self.fc1(X))
-        X = F.relu(self.out(X))
+        X = torch.sigmoid(self.out(X))
         return X
     
 def train(model, X_train, y_train, epochs=1):
+    print("Beginning training\n\n")
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
@@ -30,6 +31,7 @@ def train(model, X_train, y_train, epochs=1):
     return model
 
 def test(model, X_test, y_test):
+    print("Beginning testing\n\n")
     criterion = nn.CrossEntropyLoss()
     correct = 0
     with torch.no_grad():
@@ -37,12 +39,14 @@ def test(model, X_test, y_test):
         loss = criterion(y_eval,y_test)
         for i, val in enumerate(y_eval):
             if y_test[i][0] == 1:
-                print(val, 'ham')
-                if val[0] > val[1]:
+                if i % 50 == 0:
+                    print(val, 'ham')
+                if val[0] < 0.7:
                     correct += 1
             else:
-                if val[1] > val[0]:
-                    print(val, 'spam')
+                if val[0] > 0.7:
+                    if i % 50 == 0:
+                        print(val, 'spam')
                     correct += 1
     return f"""
     Total: {len(X_test)}
