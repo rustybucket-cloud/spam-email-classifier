@@ -2,6 +2,7 @@ import torch
 from preprocess import get_sets, get_vectors, get_tokens
 from model import Model, train, test
 import pickle
+from traininglog import log_about
 
 class SpamModel:
     def __init__(self, model, get_tokens):
@@ -16,13 +17,13 @@ class SpamModel:
         with torch.no_grad():
             pred = self.model.forward(torch.Tensor(X.toarray()))
             confidence = pred.item()
-            if confidence > 0.7:
-                confidence = round(1 - ((1 - confidence)/ 0.3), 2)
-            else:
-                confidence = round(1 - (confidence / 0.7), 2)
-            if pred[0] > .7:
+            if confidence > 0.5:
+                # map 0.5-1.0 to 0-1
+                confidence = round((confidence - 0.5) * 2, 2)
                 return { "value": "Spam", "confidence": confidence }
             else:
+                # map 0.0-0.5 to 1-0
+                confidence = round((0.5 - confidence) * 2, 2)
                 return { "value": "Not Spam", "confidence": confidence }
     
 
@@ -37,15 +38,20 @@ def main():
         train.to(device=torch.device('cuda:0'))
         test.to(device=torch.device('cuda:0'))
 
-    model = train(model, train_data, features_len, epochs=100)
+    max_epochs = 1
+    lr = 0.01
+    model, loss = train(model, train_data, features_len, max_epochs=max_epochs, lr=lr, loss_goal=0.5)
 
-    print(test(model, test_data, features_len))
-    torch.save(model.state_dict(), f"./model.pt")
+    result, percentage = test(model, test_data, features_len)
+    print(result)
+    torch.save(model.state_dict(), f"./model_3.pt")
 
     predictor = SpamModel(model, get_tokens)
     
-    with open("./model.pkl", "wb") as f:
+    with open("./model_3.pkl", "wb") as f:
         pickle.dump(predictor, f)
+    
+    log_about(len(train_data), len(test_data), max_epochs, lr, loss, percentage)
 
 
 if __name__ == "__main__":

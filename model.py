@@ -7,6 +7,7 @@ import pandas as pd
 import pickle
 import statistics
 from preprocess import get_tokens
+from traininglog import log_training
 
 class Model(nn.Module):
     def __init__(self, in_features, out_features, h1):
@@ -19,12 +20,12 @@ class Model(nn.Module):
         X = torch.sigmoid(self.out(X))
         return X
     
-def train(model, dataset, features_len, epochs=1):
+def train(model, dataset, features_len, max_epochs=1, lr=0.01, loss_goal=0):
     print("Beginning training\n")
     df = pd.read_csv("./emails.csv")
 
     criterion = nn.BCELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     dataloader = DataLoader(dataset, batch_size=50, shuffle=True)
 
     with open("./vectorizer.pkl", "rb") as f:
@@ -32,7 +33,7 @@ def train(model, dataset, features_len, epochs=1):
 
     losses = []
 
-    for epoch in range(epochs):
+    for epoch in range(max_epochs):
         set_losses = []
         dataset_count = 1
         for X, y in dataloader:
@@ -53,15 +54,19 @@ def train(model, dataset, features_len, epochs=1):
             loss.backward()
 
             set_losses.append(loss.item())
-        losses.append(statistics.mean(set_losses))
+        mean_losses = statistics.mean(set_losses)
+        losses.append(mean_losses)
 
         print(f"Epoch: {epoch + 1}\tLoss: {statistics.mean(set_losses)}")
         optimizer.step()
-    
-    plt.plot([n+1 for n in range(len(losses))], losses)
-    plt.show()
 
-    return model
+        if mean_losses <= loss_goal:
+            break
+    
+    # plt.plot([n+1 for n in range(len(losses))], losses)
+    # plt.show()
+    log_training(losses)
+    return model, round(statistics.mean(losses), 3)
 
 def test(model, dataset, features_len):
     print("Beginning testing\n\n")
@@ -95,10 +100,12 @@ def test(model, dataset, features_len):
                 else:
                     if val.item() < 0.5:
                         correct += 1
+    percentage = round(correct / len(dataset), 2) * 100
+
     return f"""
     Total: {len(dataset)}
     Correct: {correct}
-    Percentage: {round(correct / len(dataset), 2) * 100}%
+    Percentage: {percentage}%
     Loss: {statistics.mean(losses)}
-    """
+    """, percentage
 
