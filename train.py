@@ -4,9 +4,10 @@ from model import Model, train, test
 import pickle
 
 class SpamModel:
-    def __init__(self, model, vectorizer, get_tokens):
+    def __init__(self, model, get_tokens):
         self.model = model
-        self.vectorizer = vectorizer
+        with open("./vectorizer.pkl", "rb") as f:
+            self.vectorizer = pickle.load(f)
         self.get_tokens = get_tokens
 
     def classify(self, document):
@@ -26,34 +27,22 @@ class SpamModel:
     
 
 def main():
-    X_train, X_test, y_train, y_test = get_sets()
-    X_train, vectorizer = get_vectors(X_train)
-    X_train = torch.Tensor(X_train.toarray())
-    X_train.requires_grad = True
+    train_data, test_data, features_len = get_sets()
+    print(f"Train set size: {len(train_data)}\tTest set size: {len(test_data)}")
 
-    model = Model(X_train.shape[1], 1, 100)
-    y_train = torch.Tensor(y_train)
+    model = Model(features_len, 1, 100)
     if torch.cuda.is_available():
-        print("cuda available\n\n")
+        print("cuda available\n")
         model.cuda()
-        X_train.to(device=torch.device('cuda:0'))
-        y_train.to(device=torch.device('cuda:0'))
-    y_train.requires_grad=True
-    model = train(model, X_train, y_train, 50)
+        train.to(device=torch.device('cuda:0'))
+        test.to(device=torch.device('cuda:0'))
 
-    documents = get_tokens(X_test)
-    X_test = vectorizer.transform(documents)
-    X_test = torch.Tensor(X_test.toarray())
-    y_test = torch.Tensor(y_test)
-    if torch.cuda.is_available():
-        model.cuda()
-        X_test.to(device=torch.device('cuda:0'))
-        y_test.to(device=torch.device('cuda:0'))
+    model = train(model, train_data, features_len, epochs=100)
 
-    print(test(model, X_test, y_test))
+    print(test(model, test_data, features_len))
     torch.save(model.state_dict(), f"./model.pt")
 
-    predictor = SpamModel(model, vectorizer, get_tokens)
+    predictor = SpamModel(model, get_tokens)
     
     with open("./model.pkl", "wb") as f:
         pickle.dump(predictor, f)
@@ -61,3 +50,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # # with open("./model.pkl", "rb") as f:
+    #     # model = pickle.load(f)
+    # train_data, test_data, features_len = get_sets()
+    # model = Model(features_len, 1, 100)
+    # model.load_state_dict(torch.load("./model.pt"))
+    # print(test(model, test_data, features_len))

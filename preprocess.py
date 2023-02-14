@@ -4,8 +4,13 @@ from nltk.tokenize import word_tokenize
 from nltk.stem.snowball import SnowballStemmer
 import re
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.model_selection import train_test_split
 import os
+import math
+import pickle
+import torch
+from torch.utils.data import TensorDataset, Subset
 
 stemmer = SnowballStemmer("english")
 
@@ -35,24 +40,55 @@ def create_vector_dicts(vector_list):
 def get_tokens(items):
     documents = []
     for item in items:
-      tokens = tokenize(item)
-      documents.append(" ".join(tokens))
+        tokens = tokenize(item)
+        documents.append(" ".join(tokens))
     return documents
 
 def get_vectors(items):
-    print("Getting vectors/n/n")
     vectorizer = TfidfVectorizer()
+    # vectorizer = CountVectorizer()
     documents = get_tokens(items)
     X = vectorizer.fit_transform(documents)
     return X, vectorizer
 
 def get_sets():
-    print("Getting sets/n/n")
+    print("Getting sets\n")
     df = pd.read_csv("./emails.csv")
     X = df["Text"].values
+
+    TEST_SIZE = 0.1
+    SEED = 42
+
+    # generate indices: instead of the actual data we pass in integers instead
+    train_indices, test_indices, _, _ = train_test_split(
+        range(len(X)),
+        X,
+        # stratify=X.targets,
+        test_size=TEST_SIZE,
+        random_state=SEED
+    )
+
+    print("Getting vectors\n")
+    if os.path.exists("./vectorizer.pkl"):
+        with open("./vectorizer.pkl", "rb") as f:
+            vectorizer = pickle.load(f)
+        X = vectorizer.transform(X)
+    else:
+        X, vectorizer = get_vectors(X)
+        with open("./vectorizer.pkl", "wb") as f:
+            pickle.dump(vectorizer, f)
+
     y = [[1] if val == "spam" else [0] for val in df["Type"].values]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    return X_train, X_test, y_train, y_test
+    dataset = TensorDataset(torch.IntTensor(df.index.values), torch.Tensor(y))
+    item_len = len(X.toarray())
+    train_size = math.floor(item_len / .75)
+
+    print("Creating training and testing groups\n")
+    # generate subset based on indices
+    train = Subset(dataset, train_indices)
+    test = Subset(dataset, test_indices)
+    # train, test = torch.utils.data.random_split(dataset, [train_size, item_len - train_size], generator=torch.Generator().manual_seed(42))
+    return train, test, len(vectorizer.vocabulary_)
 
 def vectorize(documents, vector_dict):
     vectors = np.zeros([len(documents), len(vector_dict.keys())])
@@ -82,8 +118,8 @@ def walk_dir(dir, items, title):
             except:
                 continue
         if len(dirs) > 0:
-          for item in dirs:
-              walk_dir(dir + "/" + item, items, title)
+            for item in dirs:
+                walk_dir(dir + "/" + item, items, title)
     return items
 
 def create_sets():
