@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 
 def log_training(losses):
@@ -13,16 +14,27 @@ def log_training(losses):
 
     df.to_csv(f"{dir_name}/training.csv")
 
-def log_about(train_set, test_set, epochs, lr, loss, percentage):
+def log_about(train_set, test_set, epochs, lr, loss, percentage, hidden_layer_nodes):
   path = "./training_record/record.csv"
   df = pd.read_csv(path)
-  data = {
-    "train_set": train_set,
-    "test_set": test_set,
-    "epochs": epochs,
-    "lr": lr,
-    "loss": loss,
-    "percentage": percentage
-  }
-  df.append(data)
+  data = [[
+    train_set,
+    test_set,
+    epochs,
+    lr,
+    loss,
+    percentage,
+    hidden_layer_nodes
+  ]]
+  # df = pd.DataFrame(np.insert(df.values, len(df.values), data, axis=0))
+  new_df = pd.DataFrame(data, columns=[
+    "train_set",
+    "test_set",
+    "epochs",
+    "lr",
+    "loss",
+    "percentage",
+    "hidden_layer_nodes"
+  ])
+  df = pd.concat([df, new_df], ignore_index=True)
   df.to_csv(path)

@@ -31,27 +31,28 @@ def main():
     train_data, test_data, features_len = get_sets()
     print(f"Train set size: {len(train_data)}\tTest set size: {len(test_data)}")
 
-    model = Model(features_len, 1, 100)
+    hidden_layer_nodes = 200
+    model = Model(features_len, 1, hidden_layer_nodes)
     if torch.cuda.is_available():
         print("cuda available\n")
         model.cuda()
         train.to(device=torch.device('cuda:0'))
         test.to(device=torch.device('cuda:0'))
 
-    max_epochs = 1
+    max_epochs = 100
     lr = 0.01
-    model, loss = train(model, train_data, features_len, max_epochs=max_epochs, lr=lr, loss_goal=0.5)
+    model, loss = train(model, train_data, features_len, max_epochs=max_epochs, lr=lr, loss_goal=0.25)
 
     result, percentage = test(model, test_data, features_len)
     print(result)
-    torch.save(model.state_dict(), f"./model_3.pt")
+    torch.save(model.state_dict(), f"./model_2.pt")
 
     predictor = SpamModel(model, get_tokens)
     
-    with open("./model_3.pkl", "wb") as f:
+    with open("./model_2.pkl", "wb") as f:
         pickle.dump(predictor, f)
     
-    log_about(len(train_data), len(test_data), max_epochs, lr, loss, percentage)
+    log_about(len(train_data), len(test_data), max_epochs, lr, loss, percentage, hidden_layer_nodes)
 
 
 if __name__ == "__main__":

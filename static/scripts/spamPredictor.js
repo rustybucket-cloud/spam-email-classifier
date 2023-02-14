@@ -11,8 +11,8 @@ const handleSubmit = async (e) => {
     })
     const data = await req.json()
     document.querySelector("#results").style = "display: block;"
-    document.querySelector("#result").textContent = `${data.classification * 100}%`
-    document.querySelector("#confidence").textContent = data.confidence
+    document.querySelector("#result").textContent = data.classification
+    document.querySelector("#confidence").textContent = `${data.confidence * 100}%`
   } catch(e) {
     console.error(e)
     document.querySelector("#results").style = "display: block;"
