@@ -1,5 +1,5 @@
 import pickle
-from train import SpamModel
+from spammodel import SpamModel
 
 def classify(document):
     with open("./model.pkl", "rb") as f:

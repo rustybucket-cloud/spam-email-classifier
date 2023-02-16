@@ -18,11 +18,9 @@ class SpamModel:
             pred = self.model.forward(torch.Tensor(X.toarray()))
             confidence = pred.item()
             if confidence > 0.5:
-                # map 0.5-1.0 to 0-1
                 confidence = round((confidence - 0.5) * 2, 2)
                 return { "value": "Spam", "confidence": confidence }
             else:
-                # map 0.0-0.5 to 1-0
                 confidence = round((0.5 - confidence) * 2, 2)
                 return { "value": "Not Spam", "confidence": confidence }
     
